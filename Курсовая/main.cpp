@@ -10,70 +10,49 @@
 
 int main(int argc, char **argv)
 {
+	struct genome *genome;
+	struct creature *creature; 
+	struct matrix * matrix;
 	
 	if(argc != 3){
 		printf("Unsupported command. Type --help to get help\n");
 		return -1;
 	}
 	if(strcmp(argv[1], "-i") == 0){
+		genome = (struct genome*)malloc(sizeof(struct genome));
 		printf("%s\n", argv[1]);
 	}
 	else if(strcmp(argv[1], "-rand") == 0){
-		printf("%s\n", argv[1]);
+		genome = (struct genome*)malloc(sizeof(struct genome));
+		init_rand_genome(genome);
 	}
 	else{
 		 printf("Unsupported command. Type --help to get help\n");
 		 return -1;
 	}
-	struct genome *genome; 
-	struct creature *creature, *standard, *copy; 
-	struct matrix * matrix;
-	genome = (struct genome*)malloc(sizeof(struct genome));
+	
 	creature = (struct creature*)malloc(sizeof(struct creature));
-	copy = (struct creature*)malloc(sizeof(struct creature));
-	standard = (struct creature*)malloc(sizeof(struct creature));
 	matrix = (struct matrix*)calloc(1, sizeof(struct matrix));
 	creature->n = N;
 	creature->cells = (struct cell*)calloc(creature->n * creature->n, sizeof(struct cell));
-	int i, j;
-	//init creature. вынести в функцию
-	for(i = 0; i < creature->n; i++){
-		for(j = 0; j < creature->n; j++){
+
+	for(int i = 0; i < creature->n; i++){
+		for(int j = 0; j < creature->n; j++){
 			creature->cells[i * creature->n + j].v[0] = creature->cells[i * creature->n + j].dv[0] = 1;
 			creature->cells[i * creature->n + j].v[2] = creature->cells[i * creature->n + j].v[3] = creature->cells[i * creature->n + j].v[4] = 128;
-			//printf("%d %d %d\n", creature->cells[i * creature->n + j].v[2], creature->cells[i * creature->n + j].v[3], creature->cells[i * creature->n + j].v[4]);
-			//printf("%d %d\n", creature->cells[i * creature->n + j].v[0], creature->cells[i * creature->n + j].dv[0]);
 		}
 	}
-	//init genome. вынести в функцию
-	genome->length = 4;
-	genome->genes = (struct gene*)calloc(genome->length, sizeof(struct gene));
-	for(i = 0; i < genome->length; i++){
-		genome->genes[i].cond_length = 1;
-		genome->genes[i].cond = (struct cond*)calloc(genome->genes[i].cond_length, sizeof(struct cond));
-		for(j = 0; j < genome->genes[i].cond_length; j++){
-			genome->genes[i].cond[j].threshold = 1;
-		}
-		genome->genes[i].oper_length = 1;
-		genome->genes[i].operons = (struct operon*)calloc(genome->genes[i].oper_length, sizeof(struct operon));
-		for(j = 0; j < genome->genes[i].oper_length; j++){
-			genome->genes[i].operons[j].rate = 1;
-		}
-	}
-	//cudaError_t cudaStatus = cudaSuccess;
 	cudaError_t cudaStatus = calcWithCuda(creature, genome);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "calcWithCuda failed!");
-		goto Error;
 	}
 	printf("creature size = %d\n", creature->n);
 	matrix->size = 2; //создание матрицы свертки. вынести в функцию
 	matrix->val = (int*)calloc(matrix->size * matrix->size, sizeof(int));
 	matrix->val[0] = 1;
-	//cudaStatus = blurWithCuda(creature, matrix);
+	cudaStatus = blurWithCuda(creature, matrix);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "blurWithCuda failed!");
-		goto Error;
 	}
 	/*for(i = 0; i < creature->n; i++){
 		for(j = 0; j < creature->n; j++){
@@ -81,20 +60,18 @@ int main(int argc, char **argv)
 		}
 	}*/
 	create_img(creature); 
-
+	printf("%d\n", genome->length);
 	cudaStatus = cudaDeviceReset();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceReset failed!");
-		goto Error;
 	}
-
-Error:{
+	
 	free(genome);
+	free(creature->cells);
 	free(creature);
-	free(standard);
 	free(matrix);
-}
-	  return 0;
+	
+	return 0;
 }
 
 

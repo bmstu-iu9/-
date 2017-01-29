@@ -22,14 +22,14 @@ int create_img(struct creature *creature) {
 	//memset(pixelbuffer, 1, _pixelbytesize);
 	for(int i = 0; i < creature->n; i++){
 		for(int j = 0; j < creature->n; j++){
-			printf("%d %d %d\n", creature->cells[i * creature->n + j].v[2], creature->cells[i * creature->n + j].v[3], creature->cells[i * creature->n + j].v[4]);
+			//printf("%d %d %d\n", creature->cells[i * creature->n + j].v[2], creature->cells[i * creature->n + j].v[3], creature->cells[i * creature->n + j].v[4]);
 			pixelbuffer[(i * creature->n + j) * _bitsperpixel/8] = creature->cells[i * creature->n + j].v[2];
 			pixelbuffer[(i * creature->n + j) * _bitsperpixel/8 + 1] = creature->cells[i * creature->n + j].v[3];
 			pixelbuffer[(i * creature->n + j) * _bitsperpixel/8 + 2] = creature->cells[i * creature->n + j].v[4];
 		}
 	}
 	fwrite(pixelbuffer, 1, _pixelbytesize, fp);
-	fclose(fp);
+	fclose(fp);	
 	free(pbitmap);
 	free(pixelbuffer);
 	return 0;

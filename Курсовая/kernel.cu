@@ -1,13 +1,17 @@
 #include "cuda_runtime.h"
 #include "creature.h"
-#include "calcus.h"
 #include "genome.h"
+#include "kernel.h"
 #include "main.h"
 #include "device_launch_parameters.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 
+__device__ int calc_sigma(int x){
+	return 1 / (1 + exp((double)(-x)));
+}
 
 __device__ unsigned char get_oper_rate(int num_gene, int num_oper, int* oper_offset, unsigned char* oper){
 	return oper[oper_offset[num_gene] + 2 * num_oper] & 0x7f;
@@ -44,7 +48,7 @@ __global__ void calcKernel(int *dv, int creature_size, unsigned char* oper, int 
 		for (l = 0; l < cond_length[k]; l++){
 			unsigned char cur_cond_sign = get_cond_sign(k, l, cond_offset, cond);
 			unsigned char cur_cond_threshold = get_cond_threshold(k, l, cond_offset, cond);
-			printf("cur_cond_threshold = %d\n", cur_cond_threshold);
+			//printf("cur_cond_threshold = %d\n", cur_cond_threshold);
 			unsigned char cur_cond_substance = get_cond_substance(k, l, cond_offset, cond);
 			delta[l] = cur_cond_sign
 				? cur_cond_threshold - dv[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance]
@@ -54,7 +58,7 @@ __global__ void calcKernel(int *dv, int creature_size, unsigned char* oper, int 
 			for (p = 0; p < cond_length[l]; p++){
 				unsigned char cur_oper_substance = get_oper_substnace(k, l, oper_offset, oper);
 				unsigned char cur_oper_rate = get_oper_rate(k, l, oper_offset, oper);
-				printf("cur_oper_rate = %d\n", cur_oper_rate);
+				//printf("cur_oper_rate = %d\n", cur_oper_rate);
 				dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] +=
 					(int)(cur_oper_rate * calc_sigma(delta[p]));
 			}
@@ -136,9 +140,9 @@ cudaError_t calcWithCuda(struct creature *creature, struct genome* genome)
 		}
 		cur_offset += cur_gene.cond_length + 1;
 	}
-	for(j = 0; j < 2 * global_cond_length; j+=2){
+	/*for(j = 0; j < 2 * global_cond_length; j+=2){
 		printf("cond[j] = %d\n", cond[j]);
-	}
+	}*/
 	cur_offset = 0;
 	for(i = 0; i < genome->length; i++){
 		struct gene cur_gene = genome->genes[i];
@@ -149,9 +153,9 @@ cudaError_t calcWithCuda(struct creature *creature, struct genome* genome)
 		cur_offset += cur_gene.oper_length + 1;
 	}
 	
-	for(j = 0; j < 2 * global_oper_length; j+=2){
+	/*for(j = 0; j < 2 * global_oper_length; j+=2){
 		printf("oper[j] = %d\n", oper[j]);
-	}
+	}*/
 	init_dev_genome(cond, &d_cond, oper, &d_oper, global_cond_length, global_oper_length);
 	int *gen_cond_length, *gen_oper_length, *d_gen_cond_length = NULL, *d_gen_oper_length = NULL;
 	int *gen_cond_offset, *gen_oper_offset, *d_gen_oper_offset, *d_gen_cond_offset;

@@ -1,6 +1,14 @@
+#ifndef GENOME_H
+#define GENOME_H
+
+#define MAX_GENOME_SIZE 32
+#define MAX_COND_LENGTH 32
+#define MAX_OPERON_LENGTH 32
+#define MAX_COND_VALUE 128
+#define MAX_OPERON_VALUE 128
+
 struct operon{
     unsigned char rate : 7;
-	//alignment here
     unsigned char substance : 7;
 };
 
@@ -22,3 +30,6 @@ struct genome{
     int length;
 };
 
+void init_rand_genome(struct genome * genome);
+
+#endif

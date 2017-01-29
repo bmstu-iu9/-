@@ -2,7 +2,6 @@
 #define MAIN_H
 #include "creature.h"
 #define SUBSTANCE_LENGTH 128
-#define MAX_THREAD_NUM 512
 #define N 8
 
 void init_dev_creature(unsigned int *v, unsigned int **d_v, int *dv, int **d_dv, struct creature * creature);
