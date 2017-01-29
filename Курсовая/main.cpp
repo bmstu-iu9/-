@@ -10,6 +10,21 @@
 
 int main(int argc, char **argv)
 {
+	
+	if(argc != 3){
+		printf("Unsupported command. Type --help to get help\n");
+		return -1;
+	}
+	if(strcmp(argv[1], "-i") == 0){
+		printf("%s\n", argv[1]);
+	}
+	else if(strcmp(argv[1], "-rand") == 0){
+		printf("%s\n", argv[1]);
+	}
+	else{
+		 printf("Unsupported command. Type --help to get help\n");
+		 return -1;
+	}
 	struct genome *genome; 
 	struct creature *creature, *standard, *copy; 
 	struct matrix * matrix;

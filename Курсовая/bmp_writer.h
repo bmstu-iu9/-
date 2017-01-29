@@ -7,12 +7,10 @@
 #include <malloc.h>
 #include "creature.h"
 
-#define _height 8
-#define _width 8
 #define _bitsperpixel 24
 #define _planes 1
 #define _compression 0
-#define _pixelbytesize _height*_width*_bitsperpixel/8
+#define _pixelbytesize creature->n*creature->n*_bitsperpixel/8
 #define _filesize _pixelbytesize+sizeof(bitmap)
 #define _xpixelpermeter 0x130B //2835 , 72 DPI
 #define _ypixelpermeter 0x130B //2835 , 72 DPI
