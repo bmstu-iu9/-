@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define FILE_NAME_LENGTH 20
+
 int main(int argc, char **argv)
 {
 	struct genome *genome;
@@ -31,36 +33,47 @@ int main(int argc, char **argv)
 		 return -1;
 	}
 	
-	creature = (struct creature*)malloc(sizeof(struct creature));
+	init_creature(&creature);
+	
 	matrix = (struct matrix*)calloc(1, sizeof(struct matrix));
-	creature->n = N;
-	creature->cells = (struct cell*)calloc(creature->n * creature->n, sizeof(struct cell));
-
-	for(int i = 0; i < creature->n; i++){
-		for(int j = 0; j < creature->n; j++){
-			creature->cells[i * creature->n + j].v[0] = creature->cells[i * creature->n + j].dv[0] = 1;
-			creature->cells[i * creature->n + j].v[2] = creature->cells[i * creature->n + j].v[3] = creature->cells[i * creature->n + j].v[4] = 128;
-		}
-	}
-	cudaError_t cudaStatus = calcWithCuda(creature, genome);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "calcWithCuda failed!");
-	}
-	printf("creature size = %d\n", creature->n);
 	matrix->size = 2; //создание матрицы свертки. вынести в функцию
 	matrix->val = (int*)calloc(matrix->size * matrix->size, sizeof(int));
 	matrix->val[0] = 1;
-	cudaStatus = blurWithCuda(creature, matrix);
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "blurWithCuda failed!");
+	
+	int step = 0;
+	char path[FILE_NAME_LENGTH] = {0};
+	cudaError_t cudaStatus;
+	while(creature->n < MAX_CREATURE_SIZE){
+		if(step != 0 && step % GROW_SIZE == 0){
+			if(creature->n > 2){
+				sprintf(path, "output_image%d.bmp", step);
+				create_img(creature, path);
+			}			
+			grow(&creature);
+		}
+
+		cudaStatus = calcWithCuda(creature, genome);
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "calcWithCuda failed!");
+		}
+		printf("creature size = %d\n", creature->n);
+
+		cudaStatus = blurWithCuda(creature, matrix);
+		if (cudaStatus != cudaSuccess) {
+			fprintf(stderr, "blurWithCuda failed!");
+		}
+		step++;
 	}
+	
 	/*for(i = 0; i < creature->n; i++){
 		for(j = 0; j < creature->n; j++){
 			printf("%d %d %d\n", creature->cells[i * creature->n + j].v[2], creature->cells[i * creature->n + j].v[3], creature->cells[i * creature->n + j].v[4]);
 		}
 	}*/
-	create_img(creature); 
+	
+
 	printf("%d\n", genome->length);
+	
 	cudaStatus = cudaDeviceReset();
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceReset failed!");
@@ -106,6 +119,21 @@ void copy_after_kernel(struct creature *creature, unsigned int *v, int *dv){
 			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
 			creature->cells[i * creature->n + j].v[k] = v[(i * creature->n + j) * SUBSTANCE_LENGTH + k];
 			creature->cells[i * creature->n + j].dv[k] = dv[(i * creature->n + j) * SUBSTANCE_LENGTH + k];
+			}		
+		}
+	}
+}
+
+void init_arrays(unsigned int **v, int **dv, struct creature * creature){
+	*v = NULL; 
+	*v = (unsigned int*)calloc(creature->n * creature->n * SUBSTANCE_LENGTH, sizeof(unsigned int));
+	*dv = NULL;
+	*dv = (int*)calloc(creature->n * creature->n * SUBSTANCE_LENGTH, sizeof(int));
+	for(int i = 0; i < creature->n; i++){
+		for(int j = 0; j < creature->n; j++){
+			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
+				(*v)[(i * creature->n + j) * SUBSTANCE_LENGTH + k] = creature->cells[i * creature->n + j].v[k];
+				(*dv)[(i * creature->n + j) * SUBSTANCE_LENGTH + k] = creature->cells[i * creature->n + j].dv[k];
 			}		
 		}
 	}

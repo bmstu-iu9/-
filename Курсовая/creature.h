@@ -2,6 +2,7 @@
 #define CREATURE_HEADER
 
 #define SUBSTANCE_LENGTH 128
+#define MAX_CREATURE_SIZE 256
 
 struct cell{
 	unsigned int v[SUBSTANCE_LENGTH];
@@ -14,5 +15,8 @@ struct creature{
 	int n;
 	struct cell* cells;
 };
+
+void init_creature(struct creature ** creature);
+void grow(struct creature ** creature);
 
 #endif

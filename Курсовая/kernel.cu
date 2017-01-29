@@ -1,9 +1,7 @@
-#include "cuda_runtime.h"
 #include "creature.h"
 #include "genome.h"
 #include "kernel.h"
 #include "main.h"
-#include "device_launch_parameters.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -91,21 +89,6 @@ __global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, i
 	}
 	for (p = 0; p < SUBSTANCE_LENGTH; p++){
 		cr_v[core_point + p] = accum[p];
-	}
-}
-
-void init_arrays(unsigned int **v, int **dv, struct creature * creature){
-	*v = NULL; 
-	*v = (unsigned int*)calloc(creature->n * creature->n * SUBSTANCE_LENGTH, sizeof(unsigned int));
-	*dv = NULL;
-	*dv = (int*)calloc(creature->n * creature->n * SUBSTANCE_LENGTH, sizeof(int));
-	for(int i = 0; i < creature->n; i++){
-		for(int j = 0; j < creature->n; j++){
-			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
-				(*v)[(i * creature->n + j) * SUBSTANCE_LENGTH + k] = creature->cells[i * creature->n + j].v[k];
-				(*dv)[(i * creature->n + j) * SUBSTANCE_LENGTH + k] = creature->cells[i * creature->n + j].dv[k];
-			}		
-		}
 	}
 }
 

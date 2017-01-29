@@ -1,7 +1,7 @@
 #include "bmp_writer.h"
 
-int create_img(struct creature *creature) {
-	FILE *fp = fopen("test.bmp", "wb");
+int create_img(struct creature *creature, const char *path) {
+	FILE *fp = fopen(path, "wb");
 	bitmap *pbitmap = (bitmap*)calloc(1, sizeof(bitmap));
 	uint8_t *pixelbuffer = (uint8_t*)malloc(_pixelbytesize);
 	pbitmap->fileheader.signature[0] = 0x42;
@@ -29,7 +29,7 @@ int create_img(struct creature *creature) {
 		}
 	}
 	fwrite(pixelbuffer, 1, _pixelbytesize, fp);
-	fclose(fp);	
+	fclose(fp);
 	free(pbitmap);
 	free(pixelbuffer);
 	return 0;

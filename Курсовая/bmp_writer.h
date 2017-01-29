@@ -45,6 +45,6 @@ typedef struct {
 
 #pragma pack(pop)
 
-int create_img(struct creature *creature);
+int create_img(struct creature *creature, const char *path);
 
 #endif /* BMP_WRITER_H */
