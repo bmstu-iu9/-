@@ -65,7 +65,7 @@ __global__ void calcKernel(int *dv, int creature_size, unsigned char* oper, int 
 	}
 }
 
-__global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, int *m_val, int m_size){
+__global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, float *m_val, int m_size){
 	int y = blockDim.y*blockIdx.y + threadIdx.y;
 	int x = blockDim.x*blockIdx.x + threadIdx.x;
 	if (x >= c_size || y >= c_size)
@@ -82,7 +82,7 @@ __global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, i
 			cur_cell_j = y - sz + l;
 			if (cur_cell_i > 0 && cur_cell_i < c_size && cur_cell_j > 0 && cur_cell_j < c_size){
 				for (p = 0; p < SUBSTANCE_LENGTH; p++){
-					accum[p] += cp_v[((x * c_size + y) * SUBSTANCE_LENGTH + p)] * m_val[k * m_size + l];
+					accum[p] += (int)(cp_v[((x * c_size + y) * SUBSTANCE_LENGTH + p)] * m_val[k * m_size + l]);
 				}
 			}
 		}
@@ -220,18 +220,19 @@ cudaError_t blurWithCuda(struct creature * creature, struct matrix * matrix){
 		fprintf(stderr, "cudaSetDevice failed!\n");
 	}
 	unsigned int *v, *cr_v, *cp_v;
-	int *dv, *cr_dv, *cp_dv, *m, *d_m;
+	int *dv, *cr_dv, *cp_dv;
+	float *m, *d_m;
 	init_arrays(&v, &dv, creature);
-	m = (int*)calloc(matrix->size * matrix->size, sizeof(int));
-	memcpy(m, matrix->val, matrix->size * matrix->size * sizeof(int));
+	m = (float*)calloc(matrix->size * matrix->size, sizeof(float));
+	memcpy(m, matrix->val, matrix->size * matrix->size * sizeof(float));
 	
 	init_dev_creature(v, &cr_v, dv, &cr_dv, creature);
 	init_dev_creature(v, &cp_v, dv, &cp_dv, creature);
 
-	if(cudaMalloc((void**)&d_m, matrix->size * matrix->size * sizeof(int)) != cudaSuccess){
+	if(cudaMalloc((void**)&d_m, matrix->size * matrix->size * sizeof(float)) != cudaSuccess){
 		puts("ERROR: Unable to allocate convolution matrix\n");
 	}
-	if(cudaMemcpy(d_m, m,  matrix->size * matrix->size * sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess){
+	if(cudaMemcpy(d_m, m,  matrix->size * matrix->size * sizeof(float), cudaMemcpyHostToDevice) != cudaSuccess){
 		puts("ERROR: Unable to copy matrix\n");
 	}
 	
