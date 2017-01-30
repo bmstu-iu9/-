@@ -7,6 +7,7 @@
 #include "kernel.h"
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #define FILE_NAME_LENGTH 20
 
@@ -25,10 +26,34 @@ void init_blur_matrix(struct matrix ** matrix){
 	(*matrix)->val[8] = 1/16;	
 }
 
+int similarity(struct creature * c, struct creature * e){
+    int red = 0, green = 0, blue = 0;
+    if(c->n != e->n)
+        return -1;
+    for(int i = 0; i < c->n; i++){
+        for(int j = 0; j < c->n; j++){
+            red += (c->cells[i * c->n + j].v[2] - e->cells[i * e->n + j].v[2]);
+            green += (c->cells[i * c->n + j].v[3] - e->cells[i * e->n + j].v[3]);
+            blue += (c->cells[i * c->n + j].v[4] - e->cells[i * e->n + j].v[4]); 
+        }
+    }
+    return abs(red + green + blue); 
+}
+
+void apply_changes(struct creature * creature){
+	for(int i = 0; i < creature->n; i++){
+		for(int j = 0; j < creature->n; j++){
+			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
+				creature->cells[i * creature->n + j].v[k] = creature->cells[i * creature->n + j].dv[k];
+			}
+		}
+	}
+}
+
 int main(int argc, char **argv)
 {
 	struct genome *genome;
-	struct creature *creature; 
+	struct creature *creature, *standard; 
 	struct matrix * matrix;
 	
 	if(argc != 3){
@@ -50,15 +75,7 @@ int main(int argc, char **argv)
 	
 	init_creature(&creature);
 	init_blur_matrix(&matrix);
-	/*cudaError_t cudaStatus;
-	cudaStatus = calcWithCuda(creature, genome);
-	grow(&creature);
-	for(int i = 0; i < creature->n; i++){
-		for(int j = 0; j < creature->n; j++){
-			//(*creature)->cells[i * N + j].v[0] = (*creature)->cells[i * N + j].dv[0] = 1;
-			printf("%d %d %d\n", creature->cells[i * creature->n + j].v[2], creature->cells[i * creature->n + j].v[3], creature->cells[i * creature->n + j].v[4]);
-		}
-	}*/
+	
 	int step = 0;
 	char path[FILE_NAME_LENGTH] = {0};
 	cudaError_t cudaStatus;
@@ -76,8 +93,8 @@ int main(int argc, char **argv)
 			fprintf(stderr, "calcWithCuda failed!");
 		}
 		printf("creature size = %d\n", creature->n);
-
-		cudaStatus = blurWithCuda(creature, matrix);
+		apply_changes(creature);
+		//cudaStatus = blurWithCuda(creature, matrix);
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "blurWithCuda failed!");
 		}
@@ -97,7 +114,7 @@ int main(int argc, char **argv)
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaDeviceReset failed!");
 	}
-	
+	//int sim = similarity(creature, standard);
 	free(genome);
 	free(creature->cells);
 	free(creature);

@@ -4,7 +4,7 @@
 
 #define SUBSTANCE_LENGTH 128
 #define N 2
-#define GROW_SIZE 1
+#define GROW_SIZE 10
 
 void init_dev_creature(unsigned int *v, unsigned int **d_v, int *dv, int **d_dv, struct creature * creature);
 void init_dev_genome(unsigned char *cond, unsigned char **d_cond, unsigned char *oper, unsigned char **d_oper, int global_cond_length, int global_oper_length);

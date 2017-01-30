@@ -10,10 +10,14 @@ void init_creature(struct creature ** creature){
 	for(int i = 0; i < N; i++){
 		for(int j = 0; j < N; j++){
 			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
-				(*creature)->cells[i * N + j].v[k] = (*creature)->cells[i * N + j].dv[k] = 128;
+				(*creature)->cells[i * N + j].v[k] = (*creature)->cells[i * N + j].dv[k] = 0;
 			}
 		}
 	}
+	(*creature)->cells[0].v[0] = 1;
+	(*creature)->cells[1].v[0] = 1;
+	(*creature)->cells[1].v[1] = 1; 
+	(*creature)->cells[3].v[1] = 1;
 }
 
 void grow(struct creature ** creature){

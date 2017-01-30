@@ -189,7 +189,7 @@ cudaError_t calcWithCuda(struct creature *creature, struct genome* genome)
 		puts("ERROR: Unable to get v-vector from device\n");
 	if(cudaMemcpy(dv, d_dv, creature->n * creature->n * SUBSTANCE_LENGTH *sizeof(int*), cudaMemcpyDeviceToHost) != cudaSuccess)
 		puts("ERROR: Unable to get dv-vector from device\n");
-	puts("After calc kernel\n");
+	//puts("After calc kernel\n");
 	/*for(i = 0; i < creature->n; i++){
 		for(j = 0; j < creature->n; j++){
 			printf("%d %d\n", v[i * creature->n + j], dv[i * creature->n + j]);
