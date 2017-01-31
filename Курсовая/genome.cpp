@@ -26,6 +26,8 @@ void init_rand_genome(struct genome * genome){
 			genome->genes[i].operons[j].rate = rand() % MAX_OPERON_VALUE;
 			srand(j * 2 * genome->length + 1);
 			genome->genes[i].operons[j].substance = rand() % MAX_OPERON_VALUE;
+			srand(j * 2 * genome->length + 2);
+			genome->genes[i].operons[j].sign = rand() % 2;
 		}
 	}
 }

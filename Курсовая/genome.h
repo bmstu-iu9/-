@@ -9,6 +9,7 @@
 
 struct operon{
     unsigned char rate : 7;
+	unsigned char sign : 1;
     unsigned char substance : 7;
 };
 

@@ -32,7 +32,7 @@ int similarity(struct creature * c, struct creature * e){
         return -1;
     for(int i = 0; i < c->n; i++){
         for(int j = 0; j < c->n; j++){
-            red += (c->cells[i * c->n + j].v[2] - e->cells[i * e->n + j].v[2]);
+            red += (c->cells[i * c->n + j].v[2] - e->cells[i * e->n + j].v[2]);//abs
             green += (c->cells[i * c->n + j].v[3] - e->cells[i * e->n + j].v[3]);
             blue += (c->cells[i * c->n + j].v[4] - e->cells[i * e->n + j].v[4]); 
         }
