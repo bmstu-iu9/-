@@ -9,21 +9,19 @@
 #include <string.h>
 #include <math.h>
 
-#define FILE_NAME_LENGTH 20
-
 void init_blur_matrix(struct matrix ** matrix){
 	*matrix = (struct matrix*)calloc(1, sizeof(struct matrix));
 	(*matrix)->size = 3; 
 	(*matrix)->val = (float*)calloc((*matrix)->size * (*matrix)->size, sizeof(float));
-	(*matrix)->val[0] = 1/16;
-	(*matrix)->val[1] = 1/8;
-	(*matrix)->val[2] = 1/16;
-	(*matrix)->val[3] = 1/8;
-	(*matrix)->val[4] = 1/4;
-	(*matrix)->val[5] = 1/8;
-	(*matrix)->val[6] = 1/16;
-	(*matrix)->val[7] = 1/8;
-	(*matrix)->val[8] = 1/16;	
+	(*matrix)->val[0] = -1;
+	(*matrix)->val[1] = -1;
+	(*matrix)->val[2] = -1;
+	(*matrix)->val[3] = -1;
+	(*matrix)->val[4] = 9;
+	(*matrix)->val[5] = -1;
+	(*matrix)->val[6] = -1;
+	(*matrix)->val[7] = -1;
+	(*matrix)->val[8] = -1;	
 }
 
 int similarity(struct creature * c, struct creature * e){
@@ -32,12 +30,12 @@ int similarity(struct creature * c, struct creature * e){
         return -1;
     for(int i = 0; i < c->n; i++){
         for(int j = 0; j < c->n; j++){
-            red += (c->cells[i * c->n + j].v[2] - e->cells[i * e->n + j].v[2]);//abs
-            green += (c->cells[i * c->n + j].v[3] - e->cells[i * e->n + j].v[3]);
-            blue += (c->cells[i * c->n + j].v[4] - e->cells[i * e->n + j].v[4]); 
+            red += abs((int)(c->cells[i * c->n + j].v[2] - e->cells[i * e->n + j].v[2]));
+            green += abs((int)(c->cells[i * c->n + j].v[3] - e->cells[i * e->n + j].v[3]));
+            blue += abs((int)(c->cells[i * c->n + j].v[4] - e->cells[i * e->n + j].v[4])); 
         }
     }
-    return abs(red + green + blue); 
+    return red + green + blue; 
 }
 
 void apply_changes(struct creature * creature){
@@ -77,7 +75,7 @@ int main(int argc, char **argv)
 	init_blur_matrix(&matrix);
 	
 	int step = 0;
-	char path[FILE_NAME_LENGTH] = {0};
+	char path[FILENAME_MAX] = {0};
 	cudaError_t cudaStatus;
 	while(creature->n < MAX_CREATURE_SIZE){
 		if(step != 0 && step % GROW_SIZE == 0){
@@ -94,7 +92,7 @@ int main(int argc, char **argv)
 		}
 		printf("creature size = %d\n", creature->n);
 		apply_changes(creature);
-		//cudaStatus = blurWithCuda(creature, matrix);
+		cudaStatus = blurWithCuda(creature, matrix);
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "blurWithCuda failed!");
 		}

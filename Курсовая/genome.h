@@ -4,8 +4,8 @@
 #define MAX_GENOME_SIZE 32
 #define MAX_COND_LENGTH 32
 #define MAX_OPERON_LENGTH 32
-#define MAX_COND_VALUE 128
-#define MAX_OPERON_VALUE 128
+#define MAX_COND_VALUE 127
+#define MAX_OPERON_VALUE 127
 
 struct operon{
     unsigned char rate : 7;
