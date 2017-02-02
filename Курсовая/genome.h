@@ -32,5 +32,6 @@ struct genome{
 };
 
 void init_rand_genome(struct genome * genome);
+void load_genome(struct genome * genome, const char * path);
 
 #endif

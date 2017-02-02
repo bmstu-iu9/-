@@ -60,6 +60,7 @@ int main(int argc, char **argv)
 	}
 	if(strcmp(argv[1], "-i") == 0){
 		genome = (struct genome*)malloc(sizeof(struct genome));
+		load_genome(genome, argv[2]);
 		printf("%s\n", argv[1]);
 	}
 	else if(strcmp(argv[1], "-rand") == 0){

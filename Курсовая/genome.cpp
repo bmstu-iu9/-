@@ -1,6 +1,7 @@
 #include "genome.h"
 #include <stdlib.h>
 #include <time.h>
+#include <stdio.h>
 
 void init_rand_genome(struct genome * genome){
 	srand(time(NULL));
@@ -29,5 +30,71 @@ void init_rand_genome(struct genome * genome){
 			srand(j * 2 * genome->length + 2);
 			genome->genes[i].operons[j].sign = rand() % 2;
 		}
+	}
+}
+
+void load_genome(struct genome * genome, const char * path){
+	FILE *fp;
+	if ((fp = fopen(path, "rb"))==NULL) {
+		printf ("Cannot open genome file.\n");
+		return;
+	}
+	int *length = (int*)calloc(1, sizeof(int));
+	if(fread(length, 1, 1, fp) != 1)
+		printf("error on reading!");
+	genome->length = *length;
+	free(length);
+	printf("genome length = %d\n", genome->length);
+	genome->genes = (struct gene*)calloc(genome->length, sizeof(struct gene));
+	for(int i = 0; i < genome->length; i++){
+		int *cond_length = (int*)calloc(1, sizeof(int));
+		fread(cond_length, 1, 1, fp);
+		genome->genes[i].cond_length = *cond_length;
+		free(cond_length);
+		printf("cond length = %d\n", genome->genes[i].cond_length);
+		genome->genes[i].cond = (struct cond*)calloc(genome->genes[i].cond_length, sizeof(struct cond));
+		for(int j = 0; j < genome->genes[i].cond_length; j++){
+			unsigned char *substance, *sign, *threshold;
+			substance = (unsigned char*)calloc(1, sizeof(unsigned char));
+			sign = (unsigned char*)calloc(1, sizeof(unsigned char));
+			threshold = (unsigned char*)calloc(1, sizeof(unsigned char));
+			fread(substance, 1, 1, fp);
+			genome->genes[i].cond[j].substance = *substance;
+			printf("cond subst = %d\n", genome->genes[i].cond[j].substance);
+			fread(sign, 1, 1, fp);
+			genome->genes[i].cond[j].sign = *sign;
+			printf("cond sign = %d\n", genome->genes[i].cond[j].sign);
+			fread(threshold, 1, 1, fp);
+			genome->genes[i].cond[j].threshold = * threshold;
+			printf("cond threshold = %d\n", genome->genes[i].cond[j].threshold);
+			free(substance);
+			free(sign);
+			free(threshold);
+		}
+		int *oper_length = (int*)calloc(1, sizeof(int));
+		fread(oper_length, 1, 1, fp);
+		genome->genes[i].oper_length = *oper_length;
+		free(oper_length);
+		printf("oper length = %d\n", genome->genes[i].oper_length);
+		genome->genes[i].operons = (struct operon*)calloc(genome->genes[i].oper_length, sizeof(struct operon));
+		for(int j = 0; j < genome->genes[i].oper_length; j++){
+			unsigned char *substance, *sign, *rate;
+			substance = (unsigned char*)calloc(1, sizeof(unsigned char));
+			sign = (unsigned char*)calloc(1, sizeof(unsigned char));
+			rate = (unsigned char*)calloc(1, sizeof(unsigned char));
+			fread(substance, 1, 1, fp);
+			genome->genes[i].operons[j].substance = *substance;
+			printf("oper substance = %d\n", genome->genes[i].operons[j].substance);
+			fread(sign, 1, 1, fp);
+			genome->genes[i].operons[j].sign = *sign;
+			printf("oper sign = %d\n", genome->genes[i].operons[j].sign);
+			fread(rate, 1, 1, fp);
+			genome->genes[i].operons[j].rate = *rate;
+			printf("oper rate = %d\n", genome->genes[i].operons[j].rate);
+			free(substance);
+			free(sign);
+			free(rate);
+		}
+		
 	}
 }
