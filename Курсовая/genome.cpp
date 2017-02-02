@@ -39,18 +39,13 @@ void load_genome(struct genome * genome, const char * path){
 		printf ("Cannot open genome file.\n");
 		return;
 	}
-	int *length = (int*)calloc(1, sizeof(int));
-	if(fread(length, 1, 1, fp) != 1)
+	genome->length = 0;
+	if(fread(&(genome->length), 1, 1, fp) != 1)
 		printf("error on reading!");
-	genome->length = *length;
-	free(length);
 	printf("genome length = %d\n", genome->length);
 	genome->genes = (struct gene*)calloc(genome->length, sizeof(struct gene));
 	for(int i = 0; i < genome->length; i++){
-		int *cond_length = (int*)calloc(1, sizeof(int));
-		fread(cond_length, 1, 1, fp);
-		genome->genes[i].cond_length = *cond_length;
-		free(cond_length);
+		fread(&(genome->genes[i].cond_length), 1, 1, fp);
 		printf("cond length = %d\n", genome->genes[i].cond_length);
 		genome->genes[i].cond = (struct cond*)calloc(genome->genes[i].cond_length, sizeof(struct cond));
 		for(int j = 0; j < genome->genes[i].cond_length; j++){
@@ -71,10 +66,7 @@ void load_genome(struct genome * genome, const char * path){
 			free(sign);
 			free(threshold);
 		}
-		int *oper_length = (int*)calloc(1, sizeof(int));
-		fread(oper_length, 1, 1, fp);
-		genome->genes[i].oper_length = *oper_length;
-		free(oper_length);
+		fread(&(genome->genes[i].oper_length), 1, 1, fp);
 		printf("oper length = %d\n", genome->genes[i].oper_length);
 		genome->genes[i].operons = (struct operon*)calloc(genome->genes[i].oper_length, sizeof(struct operon));
 		for(int j = 0; j < genome->genes[i].oper_length; j++){

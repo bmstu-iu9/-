@@ -13,15 +13,15 @@ void init_blur_matrix(struct matrix ** matrix){
 	*matrix = (struct matrix*)calloc(1, sizeof(struct matrix));
 	(*matrix)->size = 3; 
 	(*matrix)->val = (float*)calloc((*matrix)->size * (*matrix)->size, sizeof(float));
-	(*matrix)->val[0] = -1;
-	(*matrix)->val[1] = -1;
-	(*matrix)->val[2] = -1;
-	(*matrix)->val[3] = -1;
-	(*matrix)->val[4] = 9;
-	(*matrix)->val[5] = -1;
-	(*matrix)->val[6] = -1;
-	(*matrix)->val[7] = -1;
-	(*matrix)->val[8] = -1;	
+	(*matrix)->val[0] = 1/16;
+	(*matrix)->val[1] = 1/8;
+	(*matrix)->val[2] = 1/16;
+	(*matrix)->val[3] = 1/8;
+	(*matrix)->val[4] = 1/4;
+	(*matrix)->val[5] = 1/8;
+	(*matrix)->val[6] = 1/16;
+	(*matrix)->val[7] = 1/8;
+	(*matrix)->val[8] = 1/16;	
 }
 
 int similarity(struct creature * c, struct creature * e){
@@ -99,7 +99,6 @@ int main(int argc, char **argv)
 		}
 		step++;
 	}
-	
 	/*for(i = 0; i < creature->n; i++){
 		for(j = 0; j < creature->n; j++){
 			printf("%d %d %d\n", creature->cells[i * creature->n + j].v[2], creature->cells[i * creature->n + j].v[3], creature->cells[i * creature->n + j].v[4]);
