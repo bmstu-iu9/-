@@ -17,6 +17,6 @@ struct creature{
 };
 
 void init_creature(struct creature ** creature);
-void grow(struct creature ** creature);
+struct creature* grow(struct creature * creature);
 
 #endif

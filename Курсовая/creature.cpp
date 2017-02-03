@@ -20,18 +20,19 @@ void init_creature(struct creature ** creature){
 	(*creature)->cells[3].v[1] = 1;
 }
 
-void grow(struct creature ** creature){
-	int old_size = (*creature)->n;
-	int new_size = (*creature)->n = 2 * (*creature)->n;
-	(*creature)->cells = (struct cell*)realloc((*creature)->cells, (*creature)->n * (*creature)->n * sizeof(struct cell));
+struct creature* grow(struct creature * creature){
+	struct creature *new_creature = (struct creature*)malloc(sizeof(struct creature));
+	int new_size = 2 * creature->n;
+	new_creature->n = new_size;
+	new_creature->cells = (struct cell*)calloc(new_creature->n * new_creature->n, sizeof(struct cell));
 	for(int i = 0; i < new_size; i++){
 		for(int j = 0; j < new_size; j++){
-			if((i * new_size + j) >= old_size * old_size){
-				for(int k = 0; k < SUBSTANCE_LENGTH; k++){
-					(*creature)->cells[i * new_size + j].v[k] = 0;
-					(*creature)->cells[i * new_size + j].dv[k] = 0;
-				}
+			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
+				new_creature->cells[i * new_size + j].v[k] = creature->cells[(i/2) * creature->n + j/2].v[k];
+				new_creature->cells[i * new_size + j].dv[k] = creature->cells[(i/2) * creature->n + j/2].dv[k];
 			}
 		}
 	}
+	free(creature);
+	return new_creature;
 }

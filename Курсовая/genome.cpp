@@ -33,7 +33,7 @@ void init_rand_genome(struct genome * genome){
 	}
 }
 
-void load_genome(struct genome * genome, const char * path){
+void load_genome(struct genome * genome, const char * path){//todo
 	FILE *fp;
 	if ((fp = fopen(path, "rb"))==NULL) {
 		printf ("Cannot open genome file.\n");
