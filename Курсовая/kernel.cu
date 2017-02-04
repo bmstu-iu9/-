@@ -51,6 +51,9 @@ __global__ void calcKernel(int *dv, int creature_size, unsigned char* oper, int 
 			unsigned char cur_cond_sign = get_cond_sign(k, l, cond_offset, cond);
 			unsigned char cur_cond_threshold = get_cond_threshold(k, l, cond_offset, cond);
 			unsigned char cur_cond_substance = get_cond_substance(k, l, cond_offset, cond);
+			/*printf("cur_cond_sign = %d\n", cur_cond_sign);
+			printf("cur_cond_substance = %d\n", cur_cond_substance);
+			printf("cur_cond_threshold = %d\n", cur_cond_threshold);*/
 			delta[l] = cur_cond_sign
 				? dv[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance] - cur_cond_threshold
 				: cur_cond_threshold - dv[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance];
@@ -60,12 +63,11 @@ __global__ void calcKernel(int *dv, int creature_size, unsigned char* oper, int 
 				unsigned char cur_oper_substance = get_oper_substnace(k, l, oper_offset, oper);
 				unsigned char cur_oper_rate = get_oper_rate(k, l, oper_offset, oper);
 				unsigned char cur_oper_sign = get_oper_sign(k, l, oper_offset, oper);
-				if(cur_oper_sign == 1){
-					dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] -= (int)(cur_oper_rate * calc_sigma(delta[p]));
-				}
-				else{
+				/*printf("cur_oper_sign = %d\n", cur_oper_sign);
+				printf("cur_oper_substance = %d\n", cur_oper_substance);
+				printf("cur_oper_rate = %d\n", cur_oper_rate);*/
+				cur_oper_sign ? dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] -= (int)(cur_oper_rate * calc_sigma(delta[p])) :
 					dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] += (int)(cur_oper_rate * calc_sigma(delta[p]));
-				}
 			}
 		}
 		free(delta);
