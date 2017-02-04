@@ -113,16 +113,16 @@ if __name__ == '__main__':
             threshold = cond.pop(0)
             f2.write(substance.to_bytes(1, byteorder = "big"))
             if(sign == 1):
-                threshold *= 2
+                threshold += 128
             f2.write(threshold.to_bytes(1, byteorder = "big"))
         for oper in cur_oper:
             substance = oper.pop(0)
             sign = oper.pop(0)
             rate = oper.pop(0)
-            substance *= 2
+            substance += 128
             f2.write(substance.to_bytes(1, byteorder = "big"))
             if(sign == 1):
-                rate *= 2
+                rate += 128
             f2.write(rate.to_bytes(1, byteorder = "big"))
     close(f1, f2)
     
