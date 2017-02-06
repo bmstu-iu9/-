@@ -14,10 +14,10 @@ void init_creature(struct creature ** creature){
 			}
 		}
 	}
-	(*creature)->cells[0].v[0] = 1;
-	(*creature)->cells[1].v[0] = 1;
-	(*creature)->cells[1].v[1] = 1; 
-	(*creature)->cells[3].v[1] = 1;
+	(*creature)->cells[0].v[0] = 127;
+	(*creature)->cells[1].v[0] = 127;
+	(*creature)->cells[1].v[1] = 127; 
+	(*creature)->cells[3].v[1] = 127;
 }
 
 struct creature* grow(struct creature * creature){

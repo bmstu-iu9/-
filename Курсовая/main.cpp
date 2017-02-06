@@ -43,15 +43,19 @@ void apply_changes(struct creature * creature){
 		for(int j = 0; j < creature->n; j++){
 			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
 				if(k == 2 || k == 3 || k == 4){
-					if((creature->cells[i * creature->n + j].dv[k] + creature->cells[i * creature->n + j].v[k]) > 255){
+					if(creature->cells[i * creature->n + j].dv[k] > 255){
 						creature->cells[i * creature->n + j].v[k] = 255;
+						continue;
+					}
+					else if(creature->cells[i * creature->n + j].dv[k] < 0){
+						creature->cells[i * creature->n + j].v[k] = 0;
 						continue;
 					}
 				}
 				creature->cells[i * creature->n + j].v[k] = creature->cells[i * creature->n + j].dv[k];
-				 if(creature->cells[i * creature->n + j].v[k] != 0){
-					printf("index = %d value = %d\n", k, creature->cells[i * creature->n + j].v[k]);
-				}
+				/*if(k == 5){
+					printf("index = %d value5 = %d\n",i * creature->n + j, creature->cells[i * creature->n + j].v[k]);
+				}*/
 			}
 		}
 	}
@@ -83,7 +87,6 @@ int main(int argc, char **argv)
 	
 	init_creature(&creature);
 	init_blur_matrix(&matrix);
-	
 	int step = 0;
 	char path[FILENAME_MAX] = {0};
 	cudaError_t cudaStatus;
@@ -108,14 +111,8 @@ int main(int argc, char **argv)
 		}
 		step++;
 	}
-	/*for(i = 0; i < creature->n; i++){
-		for(j = 0; j < creature->n; j++){
-			printf("%d %d %d\n", creature->cells[i * creature->n + j].v[2], creature->cells[i * creature->n + j].v[3], creature->cells[i * creature->n + j].v[4]);
-		}
-	}*/
 	
-
-	printf("%d\n", genome->length);
+	create_img(creature, "output_final.bmp");
 	
 	cudaStatus = cudaDeviceReset();
 	if (cudaStatus != cudaSuccess) {

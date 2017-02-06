@@ -8,7 +8,7 @@
 #include <math.h>
 
 __device__ float calc_sigma(float x){
-	return 2.1 * (1 / (1 + exp(-x))) - 0.55;
+	return 2.164 * (1 / (1 + exp(-x))) - 0.581989;
 }
 
 __device__ unsigned char get_oper_rate(int num_gene, int num_oper, int* oper_offset, unsigned char* oper){
@@ -37,7 +37,7 @@ __device__ unsigned char get_cond_substance(int num_gene, int num_cond, int* con
 
 //get i,j cell ,k value in vector -- (i * size + j) * SUBSTANCE_LENGTH + k
 
-__global__ void calcKernel(int *dv, int creature_size, unsigned char* oper, int *oper_length, int* oper_offset, unsigned char* cond, int* cond_length, int* cond_offset, int genome_size)
+__global__ void calcKernel(unsigned int *v, int *dv, int creature_size, unsigned char* oper, int *oper_length, int* oper_offset, unsigned char* cond, int* cond_length, int* cond_offset, int genome_size)
 {
 	int y = blockDim.y*blockIdx.y + threadIdx.y;
 	int x = blockDim.x*blockIdx.x + threadIdx.x;
@@ -52,8 +52,9 @@ __global__ void calcKernel(int *dv, int creature_size, unsigned char* oper, int 
 			unsigned char cur_cond_threshold = get_cond_threshold(k, l, cond_offset, cond);
 			unsigned char cur_cond_substance = get_cond_substance(k, l, cond_offset, cond);
 			delta[l] = cur_cond_sign
-				? dv[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance] - cur_cond_threshold
-				: cur_cond_threshold - dv[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance];
+				? v[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance] - cur_cond_threshold
+				: cur_cond_threshold - v[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance];
+			//printf("cur_cond_subst = %d cur_cell = %d dv = %d\n", cur_cond_substance ,cur_cell, delta[l]);
 		}
 		for (l = 0; l < oper_length[k]; l++){
 			for (p = 0; p < cond_length[l]; p++){
@@ -61,7 +62,8 @@ __global__ void calcKernel(int *dv, int creature_size, unsigned char* oper, int 
 				unsigned char cur_oper_rate = get_oper_rate(k, l, oper_offset, oper);
 				unsigned char cur_oper_sign = get_oper_sign(k, l, oper_offset, oper);
 				cur_oper_sign ? dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] -= (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127)) :
-					dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] += (int)(cur_oper_rate * calc_sigma(delta[p]));
+					dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] += (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127));
+				
 			}
 		}
 		free(delta);
@@ -182,7 +184,7 @@ cudaError_t calcWithCuda(struct creature *creature, struct genome* genome)
 	int threadNum = MAX_THREAD_NUM;
 	dim3 blockSize = dim3(threadNum, 1, 1);
 	dim3 gridSize = dim3(creature->n/threadNum + 1, creature->n, 1);
-	calcKernel << <gridSize, blockSize>> >(d_dv, creature->n, d_oper, d_gen_oper_length, d_gen_oper_offset, d_cond, d_gen_cond_length, d_gen_cond_offset, genome->length);
+	calcKernel << <gridSize, blockSize>> >(d_v, d_dv, creature->n, d_oper, d_gen_oper_length, d_gen_oper_offset, d_cond, d_gen_cond_length, d_gen_cond_offset, genome->length);
 
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {

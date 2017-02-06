@@ -10,6 +10,7 @@ void init_rand_genome(struct genome * genome){
 	genome->genes = (struct gene*)calloc(genome->length, sizeof(struct gene));
 	for(int i = 0; i < genome->length; i++){
 		srand(i * genome->length);
+
 		genome->genes[i].cond_length = rand() % MAX_COND_LENGTH;
 		genome->genes[i].cond = (struct cond*)calloc(genome->genes[i].cond_length, sizeof(struct cond));
 		for(int j = 0; j < genome->genes[i].cond_length; j++){

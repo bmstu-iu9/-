@@ -2,7 +2,7 @@
 #define CREATURE_HEADER
 
 #define SUBSTANCE_LENGTH 128
-#define MAX_CREATURE_SIZE 8
+#define MAX_CREATURE_SIZE 512
 
 struct cell{
 	unsigned int v[SUBSTANCE_LENGTH];
