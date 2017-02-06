@@ -14,13 +14,13 @@ void init_blur_matrix(struct matrix ** matrix){
 	(*matrix)->size = 3; 
 	(*matrix)->val = (float*)calloc((*matrix)->size * (*matrix)->size, sizeof(float));
 	(*matrix)->val[0] = 1;
-	(*matrix)->val[1] = 1;
+	(*matrix)->val[1] = 2;
 	(*matrix)->val[2] = 1;
-	(*matrix)->val[3] = 1;
-	(*matrix)->val[4] = 1;
-	(*matrix)->val[5] = 1;
+	(*matrix)->val[3] = 2;
+	(*matrix)->val[4] = 4;
+	(*matrix)->val[5] = 2;
 	(*matrix)->val[6] = 1;
-	(*matrix)->val[7] = 1;
+	(*matrix)->val[7] = 2;
 	(*matrix)->val[8] = 1;	
 }
 
@@ -42,7 +42,16 @@ void apply_changes(struct creature * creature){
 	for(int i = 0; i < creature->n; i++){
 		for(int j = 0; j < creature->n; j++){
 			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
+				if(k == 2 || k == 3 || k == 4){
+					if((creature->cells[i * creature->n + j].dv[k] + creature->cells[i * creature->n + j].v[k]) > 255){
+						creature->cells[i * creature->n + j].v[k] = 255;
+						continue;
+					}
+				}
 				creature->cells[i * creature->n + j].v[k] = creature->cells[i * creature->n + j].dv[k];
+				 if(creature->cells[i * creature->n + j].v[k] != 0){
+					printf("index = %d value = %d\n", k, creature->cells[i * creature->n + j].v[k]);
+				}
 			}
 		}
 	}
@@ -65,6 +74,7 @@ int main(int argc, char **argv)
 	else if(strcmp(argv[1], "-rand") == 0){
 		genome = (struct genome*)malloc(sizeof(struct genome));
 		init_rand_genome(genome);
+		save_genome(genome, argv[2]);
 	}
 	else{
 		 printf("Unsupported command. Type --help to get help\n");
@@ -92,7 +102,7 @@ int main(int argc, char **argv)
 		}
 		printf("creature size = %d\n", creature->n);
 		apply_changes(creature);
-		//cudaStatus = blurWithCuda(creature, matrix);
+		cudaStatus = blurWithCuda(creature, matrix);
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "blurWithCuda failed!");
 		}
@@ -134,13 +144,13 @@ void init_dev_creature(unsigned int *v, unsigned int **d_v, int *dv, int **d_dv,
 }
 
 void init_dev_genome(unsigned char *cond, unsigned char **d_cond, unsigned char *oper, unsigned char **d_oper, int global_cond_length, int global_oper_length){
-	if(cudaMalloc((void**)d_cond, 2 * global_cond_length * sizeof(unsigned char)) != cudaSuccess)
+	if(cudaMalloc((void**)d_cond, global_cond_length * sizeof(unsigned char)) != cudaSuccess)
 		puts("ERROR: Unable to allocate cond-vector");
-	if(cudaMalloc((void**)d_oper, 2 * global_oper_length * sizeof(unsigned char)) != cudaSuccess)
+	if(cudaMalloc((void**)d_oper, global_oper_length * sizeof(unsigned char)) != cudaSuccess)
 		puts("ERROR: Unable to allocate oper-vector");
-	if(cudaMemcpy(*d_cond, cond, 2 * global_cond_length * sizeof(unsigned char), cudaMemcpyHostToDevice) != cudaSuccess)
+	if(cudaMemcpy(*d_cond, cond, global_cond_length * sizeof(unsigned char), cudaMemcpyHostToDevice) != cudaSuccess)
 		puts("ERROR: Unable to copy cond-vector");
-	if(cudaMemcpy(*d_oper, oper, 2 * global_oper_length * sizeof(unsigned char), cudaMemcpyHostToDevice) != cudaSuccess)
+	if(cudaMemcpy(*d_oper, oper, global_oper_length * sizeof(unsigned char), cudaMemcpyHostToDevice) != cudaSuccess)
 		puts("ERROR: Unable to copy oper-vector");
 	return;
 }

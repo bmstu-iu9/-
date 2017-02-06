@@ -7,8 +7,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-__device__ int calc_sigma(int x){
-	return 1 / (1 + exp((double)(-x)));
+__device__ float calc_sigma(float x){
+	return 2.1 * (1 / (1 + exp(-x))) - 0.55;
 }
 
 __device__ unsigned char get_oper_rate(int num_gene, int num_oper, int* oper_offset, unsigned char* oper){
@@ -16,7 +16,7 @@ __device__ unsigned char get_oper_rate(int num_gene, int num_oper, int* oper_off
 }
 
 __device__ unsigned char get_oper_sign(int num_gene, int num_oper, int* oper_offset, unsigned char* oper){
-	return oper[oper_offset[num_gene] + 2 * num_oper] & 0x80;
+	return (oper[oper_offset[num_gene] + 2 * num_oper] & 0x80) >> 7;
 }
 
 __device__ unsigned char get_oper_substnace(int num_gene, int num_oper, int* oper_offset, unsigned char* oper){
@@ -28,7 +28,7 @@ __device__ unsigned char get_cond_threshold(int num_gene, int num_cond, int* con
 }
 
 __device__ unsigned char get_cond_sign(int num_gene, int num_cond, int* cond_offset, unsigned char* cond){
-	return cond[cond_offset[num_gene] + 2 * num_cond] & 0x80;
+	return (cond[cond_offset[num_gene] + 2 * num_cond] & 0x80) >> 7;
 }
 
 __device__ unsigned char get_cond_substance(int num_gene, int num_cond, int* cond_offset, unsigned char* cond){
@@ -51,9 +51,6 @@ __global__ void calcKernel(int *dv, int creature_size, unsigned char* oper, int 
 			unsigned char cur_cond_sign = get_cond_sign(k, l, cond_offset, cond);
 			unsigned char cur_cond_threshold = get_cond_threshold(k, l, cond_offset, cond);
 			unsigned char cur_cond_substance = get_cond_substance(k, l, cond_offset, cond);
-			/*printf("cur_cond_sign = %d\n", cur_cond_sign);
-			printf("cur_cond_substance = %d\n", cur_cond_substance);
-			printf("cur_cond_threshold = %d\n", cur_cond_threshold);*/
 			delta[l] = cur_cond_sign
 				? dv[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance] - cur_cond_threshold
 				: cur_cond_threshold - dv[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance];
@@ -63,10 +60,7 @@ __global__ void calcKernel(int *dv, int creature_size, unsigned char* oper, int 
 				unsigned char cur_oper_substance = get_oper_substnace(k, l, oper_offset, oper);
 				unsigned char cur_oper_rate = get_oper_rate(k, l, oper_offset, oper);
 				unsigned char cur_oper_sign = get_oper_sign(k, l, oper_offset, oper);
-				/*printf("cur_oper_sign = %d\n", cur_oper_sign);
-				printf("cur_oper_substance = %d\n", cur_oper_substance);
-				printf("cur_oper_rate = %d\n", cur_oper_rate);*/
-				cur_oper_sign ? dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] -= (int)(cur_oper_rate * calc_sigma(delta[p])) :
+				cur_oper_sign ? dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] -= (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127)) :
 					dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] += (int)(cur_oper_rate * calc_sigma(delta[p]));
 			}
 		}
@@ -91,13 +85,18 @@ __global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, f
 			cur_cell_j = y - sz + l;
 			if (cur_cell_i > 0 && cur_cell_i < c_size && cur_cell_j > 0 && cur_cell_j < c_size){
 				for (p = 0; p < SUBSTANCE_LENGTH; p++){
-					accum[p] += (int)(cp_v[((x * c_size + y) * SUBSTANCE_LENGTH + p)] * m_val[k * m_size + l]);
+					accum[p] += (cp_v[((cur_cell_i * c_size + cur_cell_j) * SUBSTANCE_LENGTH + p)] * m_val[k * m_size + l]);
+				}
+			}
+			else{
+				for(p = 0; p < SUBSTANCE_LENGTH; p++){
+					accum[p] = cp_v[(x * c_size + y) * SUBSTANCE_LENGTH + p];
 				}
 			}
 		}
 	}
 	for (p = 0; p < SUBSTANCE_LENGTH; p++){
-		cr_v[core_point + p] = accum[p];
+		cr_v[core_point * SUBSTANCE_LENGTH + p] = (accum[p])/16;
 	}
 }
 
@@ -120,28 +119,31 @@ cudaError_t calcWithCuda(struct creature *creature, struct genome* genome)
 		global_cond_length += genome->genes[i].cond_length;
 		global_oper_length += genome->genes[i].oper_length;
 	}
-	cond = (unsigned char*)calloc(2 * global_cond_length, sizeof(unsigned char));
-	oper = (unsigned char*)calloc(2 * global_oper_length, sizeof(unsigned char));
+	global_cond_length *= 2;
+	global_oper_length *= 2;
+	cond = (unsigned char*)calloc(global_cond_length, sizeof(unsigned char));
+	oper = (unsigned char*)calloc(global_oper_length, sizeof(unsigned char));
+	
 	int cur_offset = 0;
 	for(i = 0; i < genome->length; i++){
 		struct gene cur_gene = genome->genes[i];
-		for(j = 0; j < 2 * cur_gene.cond_length; j+=2){
-			cond[cur_offset + j] += cur_gene.cond[j].threshold;
-			cond[cur_offset + j] += (cur_gene.cond[j].sign << 7);
-			cond[cur_offset + j + 1] += cur_gene.cond[j].substance;
+		for(j = 0; j < cur_gene.cond_length; j++){
+			cond[cur_offset + 2 * j] += cur_gene.cond[j].threshold;
+			cond[cur_offset + 2 * j] += (cur_gene.cond[j].sign << 7);
+			cond[cur_offset + 2 * j + 1] = cur_gene.cond[j].substance;
 		}
-		cur_offset += cur_gene.cond_length + 1;
+		cur_offset += 2 * cur_gene.cond_length;
 	}
 
 	cur_offset = 0;
 	for(i = 0; i < genome->length; i++){
 		struct gene cur_gene = genome->genes[i];
-		for(j = 0; j < 2 * cur_gene.oper_length; j+=2){
-			oper[cur_offset + j] += cur_gene.operons[j].rate;
-			oper[cur_offset + j] += (cur_gene.operons[j].sign << 7);
-			oper[cur_offset + j + 1] += cur_gene.operons[j].substance; //последний бит байта 0
+		for(j = 0; j < cur_gene.oper_length; j++){
+			oper[cur_offset + 2 * j] += cur_gene.operons[j].rate;
+			oper[cur_offset + 2 * j] += (cur_gene.operons[j].sign << 7);
+			oper[cur_offset + 2 * j + 1] = cur_gene.operons[j].substance;
 		}
-		cur_offset += cur_gene.oper_length + 1;
+		cur_offset += 2 * cur_gene.oper_length;
 	}
 	
 	init_dev_genome(cond, &d_cond, oper, &d_oper, global_cond_length, global_oper_length);
@@ -154,7 +156,7 @@ cudaError_t calcWithCuda(struct creature *creature, struct genome* genome)
 	int tc_offset = 0, to_offset = 0;
 	for(i = 0; i < genome->length; i++){
 		gen_cond_offset[i] = tc_offset;
-		gen_cond_offset[i] = to_offset;
+		gen_oper_offset[i] = to_offset;
 		gen_cond_length[i] = genome->genes[i].cond_length;
 		gen_oper_length[i] = genome->genes[i].oper_length;
 		tc_offset += genome->genes[i].cond_length * 2;
@@ -180,7 +182,7 @@ cudaError_t calcWithCuda(struct creature *creature, struct genome* genome)
 	int threadNum = MAX_THREAD_NUM;
 	dim3 blockSize = dim3(threadNum, 1, 1);
 	dim3 gridSize = dim3(creature->n/threadNum + 1, creature->n, 1);
-	calcKernel << <gridSize,blockSize>> >(d_dv, creature->n, d_oper, d_gen_oper_length, d_gen_oper_offset, d_cond, d_gen_cond_length, d_gen_cond_offset, genome->length);
+	calcKernel << <gridSize, blockSize>> >(d_dv, creature->n, d_oper, d_gen_oper_length, d_gen_oper_offset, d_cond, d_gen_cond_length, d_gen_cond_offset, genome->length);
 
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
@@ -244,7 +246,7 @@ cudaError_t blurWithCuda(struct creature * creature, struct matrix * matrix){
 	int threadNum = MAX_THREAD_NUM;
 	dim3 blockSize = dim3(threadNum, 1, 1);
 	dim3 gridSize = dim3(creature->n/threadNum + 1, creature->n, 1);
-	blurKernel << <blockSize, gridSize>> >(cr_v, cp_v, creature->n, d_m, matrix->size);
+	blurKernel << <gridSize, blockSize>> >(cr_v, cp_v, creature->n, d_m, matrix->size);
 
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {

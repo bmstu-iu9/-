@@ -34,12 +34,41 @@ void init_rand_genome(struct genome * genome){
 	}
 }
 
+void save_genome(struct genome * genome, const char * path){
+	FILE *fp;
+	if ((fp = fopen(path, "wb"))==NULL) {
+		printf ("Cannot open genome file.\n");
+		return;
+	}
+	int i, j;
+	for(i = 0; i < genome->length; i++){
+		for(j = 0; j < genome->genes[i].cond_length; j++){
+			uint16_t cond = 0;
+			cond |= ((uint16_t)genome->genes[i].cond[j].sign) << 15;
+			cond |= (uint16_t)genome->genes[i].cond[j].substance;
+			cond |= ((uint16_t)genome->genes[i].cond[j].threshold) << 7;
+			fwrite(&cond, sizeof(uint16_t), 1, fp);
+			printf("cond = %x\n", cond);
+		}
+		for(j = 0; j < genome->genes[i].oper_length; j++){
+			uint16_t oper = 0;
+			oper |=	1 << 8;
+			oper |= ((uint16_t)genome->genes[i].operons[j].sign) << 15;
+			oper |= (uint16_t)genome->genes[i].operons[j].substance;
+			oper |= ((uint16_t)genome->genes[i].operons[j].rate) << 7;
+			fwrite(&oper, sizeof(uint16_t), 1, fp);
+			printf("oper = %x\n", oper);
+		}
+	}
+	fclose(fp);
+}
+
 bool get_flag(uint16_t val){
 	return val & 0x80;
 }
 
 unsigned char get_substance(uint16_t val){
-	return val & 0x7f;;
+	return val & 0x7f;
 }
 
 unsigned char get_sign(uint16_t val){
@@ -149,13 +178,14 @@ void load_genome(struct genome * genome, const char * path){//todo
 			}
 		}
 	}
-	/*for(i = 0; i < genome->length; i++){
+	for(i = 0; i < genome->length; i++){
 		for(int j = 0; j < genome->genes[i].cond_length; j++){
 			printf("cond = %d %d %d\n", genome->genes[i].cond[j].substance, genome->genes[i].cond[j].sign, genome->genes[i].cond[j].threshold);
 		}
 		for(int j = 0; j < genome->genes[i].oper_length; j++){
 			printf("oper = %d %d %d\n", genome->genes[i].operons[j].substance, genome->genes[i].operons[j].sign, genome->genes[i].operons[j].rate);
 		}
-	}*/
+	}
 	free(buffer);
+	fclose(fp);
 }

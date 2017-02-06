@@ -19,7 +19,6 @@ int create_img(struct creature *creature, const char *path) {
 	pbitmap->bitmapinfoheader.xpixelpermeter = _xpixelpermeter;
 	pbitmap->bitmapinfoheader.numcolorspallette = 0;
 	fwrite(pbitmap, 1, sizeof(bitmap), fp);
-	//memset(pixelbuffer, 1, _pixelbytesize);
 	for(int i = 0; i < creature->n; i++){
 		for(int j = 0; j < creature->n; j++){
 			//printf("index = %d\n", i * creature->n + j);
