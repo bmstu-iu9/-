@@ -21,43 +21,10 @@ void init_blur_matrix(struct matrix ** matrix){
 	(*matrix)->val[5] = 2;
 	(*matrix)->val[6] = 1;
 	(*matrix)->val[7] = 2;
-	(*matrix)->val[8] = 1;	
-}
-
-int similarity(struct creature * c, struct creature * e){
-    int red = 0, green = 0, blue = 0;
-    if(c->n != e->n)
-        return -1;
-    for(int i = 0; i < c->n; i++){
-        for(int j = 0; j < c->n; j++){
-            red += abs((int)(c->cells[i * c->n + j].v[2] - e->cells[i * e->n + j].v[2]));
-            green += abs((int)(c->cells[i * c->n + j].v[3] - e->cells[i * e->n + j].v[3]));
-            blue += abs((int)(c->cells[i * c->n + j].v[4] - e->cells[i * e->n + j].v[4])); 
-        }
-    }
-    return red + green + blue; 
-}
-
-void apply_changes(struct creature * creature){
-	for(int i = 0; i < creature->n; i++){
-		for(int j = 0; j < creature->n; j++){
-			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
-				if(k == 2 || k == 3 || k == 4){
-					if(creature->cells[i * creature->n + j].dv[k] > 255){
-						creature->cells[i * creature->n + j].v[k] = 255;
-						continue;
-					}
-					else if(creature->cells[i * creature->n + j].dv[k] < 0){
-						creature->cells[i * creature->n + j].v[k] = 0;
-						continue;
-					}
-				}
-				creature->cells[i * creature->n + j].v[k] = creature->cells[i * creature->n + j].dv[k];
-				/*if(k == 5){
-					printf("index = %d value5 = %d\n",i * creature->n + j, creature->cells[i * creature->n + j].v[k]);
-				}*/
-			}
-		}
+	(*matrix)->val[8] = 1;
+	(*matrix)->norm_rate = 0;
+	for(int i = 0; i < (*matrix)->size; i++){
+		(*matrix)->norm_rate += (*matrix)->val[i];
 	}
 }
 
@@ -86,6 +53,11 @@ int main(int argc, char **argv)
 	}
 	
 	init_creature(&creature);
+	/*for(int i = 0; i < creature->n; i++){
+		for(int j = 0; j < creature->n; j++){
+			printf("%d %d %d\n", creature->cells[i * creature->n + j].dv[0], creature->cells[i * creature->n + j].dv[1], creature->cells[i * creature->n + j].dv[2]);
+		}
+	}*/
 	init_blur_matrix(&matrix);
 	int step = 0;
 	char path[FILENAME_MAX] = {0};
@@ -98,7 +70,7 @@ int main(int argc, char **argv)
 			}			
 			creature = grow(creature);
 		}
-
+		
 		cudaStatus = calcWithCuda(creature, genome);
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "calcWithCuda failed!");
@@ -157,14 +129,15 @@ void copy_after_kernel(struct creature *creature, unsigned int *v, int *dv){
 	for(int i = 0; i < creature->n; i++){
 		for(int j = 0; j < creature->n; j++){
 			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
-			creature->cells[i * creature->n + j].v[k] = v[(i * creature->n + j) * SUBSTANCE_LENGTH + k];
-			creature->cells[i * creature->n + j].dv[k] = dv[(i * creature->n + j) * SUBSTANCE_LENGTH + k];
-			}		
+				creature->cells[i * creature->n + j].v[k] = v[(i * creature->n + j) * (SUBSTANCE_LENGTH - 1) + k];
+				creature->cells[i * creature->n + j].dv[k] = dv[(i * creature->n + j) * (SUBSTANCE_LENGTH - 1) + k];
+			}
 		}
 	}
 }
 
 void init_arrays(unsigned int **v, int **dv, struct creature * creature){
+
 	*v = NULL; 
 	*v = (unsigned int*)calloc(creature->n * creature->n * SUBSTANCE_LENGTH, sizeof(unsigned int));
 	*dv = NULL;
@@ -172,9 +145,9 @@ void init_arrays(unsigned int **v, int **dv, struct creature * creature){
 	for(int i = 0; i < creature->n; i++){
 		for(int j = 0; j < creature->n; j++){
 			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
-				(*v)[(i * creature->n + j) * SUBSTANCE_LENGTH + k] = creature->cells[i * creature->n + j].v[k];
-				(*dv)[(i * creature->n + j) * SUBSTANCE_LENGTH + k] = creature->cells[i * creature->n + j].dv[k];
-			}		
+				(*v)[(i * creature->n + j) * (SUBSTANCE_LENGTH - 1) + k] = creature->cells[i * creature->n + j].v[k];
+				(*dv)[(i * creature->n + j) * (SUBSTANCE_LENGTH - 1) + k] = creature->cells[i * creature->n + j].dv[k];
+			}
 		}
 	}
 }

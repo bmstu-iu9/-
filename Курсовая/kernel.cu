@@ -2,6 +2,7 @@
 #include "genome.h"
 #include "kernel.h"
 #include "main.h"
+#include "bmp_writer.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -35,7 +36,7 @@ __device__ unsigned char get_cond_substance(int num_gene, int num_cond, int* con
 	return cond[cond_offset[num_gene] + 2 * num_cond + 1] & 0x7f;
 }
 
-//get i,j cell ,k value in vector -- (i * size + j) * SUBSTANCE_LENGTH + k
+//get i,j cell ,k value in vector -- (i * size + j) * (SUBSTANCE_LENGTH - 1) + k
 
 __global__ void calcKernel(unsigned int *v, int *dv, int creature_size, unsigned char* oper, int *oper_length, int* oper_offset, unsigned char* cond, int* cond_length, int* cond_offset, int genome_size)
 {
@@ -52,8 +53,8 @@ __global__ void calcKernel(unsigned int *v, int *dv, int creature_size, unsigned
 			unsigned char cur_cond_threshold = get_cond_threshold(k, l, cond_offset, cond);
 			unsigned char cur_cond_substance = get_cond_substance(k, l, cond_offset, cond);
 			delta[l] = cur_cond_sign
-				? v[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance] - cur_cond_threshold
-				: cur_cond_threshold - v[cur_cell * SUBSTANCE_LENGTH + cur_cond_substance];
+				? v[cur_cell * (SUBSTANCE_LENGTH - 1) + cur_cond_substance] - cur_cond_threshold
+				: cur_cond_threshold - v[cur_cell * (SUBSTANCE_LENGTH - 1) + cur_cond_substance];
 			//printf("cur_cond_subst = %d cur_cell = %d dv = %d\n", cur_cond_substance ,cur_cell, delta[l]);
 		}
 		for (l = 0; l < oper_length[k]; l++){
@@ -61,8 +62,8 @@ __global__ void calcKernel(unsigned int *v, int *dv, int creature_size, unsigned
 				unsigned char cur_oper_substance = get_oper_substnace(k, l, oper_offset, oper);
 				unsigned char cur_oper_rate = get_oper_rate(k, l, oper_offset, oper);
 				unsigned char cur_oper_sign = get_oper_sign(k, l, oper_offset, oper);
-				cur_oper_sign ? dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] -= (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127)) :
-					dv[cur_cell * SUBSTANCE_LENGTH + cur_oper_substance] += (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127));
+				cur_oper_sign ? dv[cur_cell * (SUBSTANCE_LENGTH - 1) + cur_oper_substance] -= (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127)) :
+					dv[cur_cell * (SUBSTANCE_LENGTH - 1) + cur_oper_substance] += (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127));
 				
 			}
 		}
@@ -70,7 +71,7 @@ __global__ void calcKernel(unsigned int *v, int *dv, int creature_size, unsigned
 	}
 }
 
-__global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, float *m_val, int m_size){
+__global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, float *m_val, int m_size, float norm_rate){
 	int y = blockDim.y*blockIdx.y + threadIdx.y;
 	int x = blockDim.x*blockIdx.x + threadIdx.x;
 	if (x >= c_size || y >= c_size)
@@ -79,7 +80,7 @@ __global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, f
 	int core_point = x * c_size + y;
 	int cur_cell_i = x;
 	int cur_cell_j = y;
-	int accum[SUBSTANCE_LENGTH] = { 0 };
+	float accum[SUBSTANCE_LENGTH] = { 0 };
 	int k, l, p;
 	for (k = 0; k < m_size; k++){
 		for (l = 0; l < m_size; l++){
@@ -87,18 +88,18 @@ __global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, f
 			cur_cell_j = y - sz + l;
 			if (cur_cell_i > 0 && cur_cell_i < c_size && cur_cell_j > 0 && cur_cell_j < c_size){
 				for (p = 0; p < SUBSTANCE_LENGTH; p++){
-					accum[p] += (cp_v[((cur_cell_i * c_size + cur_cell_j) * SUBSTANCE_LENGTH + p)] * m_val[k * m_size + l]);
+					accum[p] += (cp_v[((cur_cell_i * c_size + cur_cell_j) * (SUBSTANCE_LENGTH - 1) + p)] * m_val[k * m_size + l]);
 				}
 			}
 			else{
 				for(p = 0; p < SUBSTANCE_LENGTH; p++){
-					accum[p] = cp_v[(x * c_size + y) * SUBSTANCE_LENGTH + p];
+					accum[p] = cp_v[(x * c_size + y) * (SUBSTANCE_LENGTH - 1) + p];
 				}
 			}
 		}
 	}
 	for (p = 0; p < SUBSTANCE_LENGTH; p++){
-		cr_v[core_point * SUBSTANCE_LENGTH + p] = (accum[p])/16;
+		cr_v[core_point * (SUBSTANCE_LENGTH - 1) + p] = (accum[p])/norm_rate;
 	}
 }
 
@@ -194,16 +195,10 @@ cudaError_t calcWithCuda(struct creature *creature, struct genome* genome)
 	if(cudaDeviceSynchronize() != cudaSuccess){
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcKernel\n", cudaStatus);
 	}
-	if(cudaMemcpy(v, d_v, creature->n * creature->n * SUBSTANCE_LENGTH * sizeof(unsigned int*), cudaMemcpyDeviceToHost) != cudaSuccess) 
+	if(cudaMemcpy(v, d_v, creature->n * creature->n * SUBSTANCE_LENGTH * sizeof(unsigned int), cudaMemcpyDeviceToHost) != cudaSuccess) 
 		puts("ERROR: Unable to get v-vector from device\n");
-	if(cudaMemcpy(dv, d_dv, creature->n * creature->n * SUBSTANCE_LENGTH *sizeof(int*), cudaMemcpyDeviceToHost) != cudaSuccess)
+	if(cudaMemcpy(dv, d_dv, creature->n * creature->n * SUBSTANCE_LENGTH * sizeof(int), cudaMemcpyDeviceToHost) != cudaSuccess)
 		puts("ERROR: Unable to get dv-vector from device\n");
-	//puts("After calc kernel\n");
-	/*for(i = 0; i < creature->n; i++){
-		for(j = 0; j < creature->n; j++){
-			printf("%d %d\n", v[i * creature->n + j], dv[i * creature->n + j]);
-		}
-	}*/
 	copy_after_kernel(creature, v, dv);
 	
 	free(v);
@@ -248,7 +243,7 @@ cudaError_t blurWithCuda(struct creature * creature, struct matrix * matrix){
 	int threadNum = MAX_THREAD_NUM;
 	dim3 blockSize = dim3(threadNum, 1, 1);
 	dim3 gridSize = dim3(creature->n/threadNum + 1, creature->n, 1);
-	blurKernel << <gridSize, blockSize>> >(cr_v, cp_v, creature->n, d_m, matrix->size);
+	blurKernel << <gridSize, blockSize>> >(cr_v, cp_v, creature->n, d_m, matrix->size, matrix->norm_rate);
 
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {

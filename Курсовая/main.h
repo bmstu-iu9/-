@@ -14,6 +14,7 @@ void init_arrays(unsigned int **v, int **dv, struct creature * creature);
 struct matrix{
 	int size;
 	float *val;
+	float norm_rate;
 };
 
 #endif
