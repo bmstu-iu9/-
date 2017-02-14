@@ -3,7 +3,7 @@
 #include "creature.h"
 
 #define SUBSTANCE_LENGTH 128
-#define N 2
+#define N 4
 #define GROW_SIZE 2
 
 void init_dev_creature(unsigned int *v, unsigned int **d_v, int *dv, int **d_dv, struct creature * creature);

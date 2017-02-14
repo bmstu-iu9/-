@@ -18,7 +18,8 @@ struct creature{
 
 void init_creature(struct creature ** creature);
 struct creature* grow(struct creature * creature);
-void apply_changes(struct creature * creature);
+void apply_calc_changes(struct creature * creature);
+void apply_blur_changes(struct creature * creature);
 int similarity(struct creature * c, struct creature * e);
 
 #endif

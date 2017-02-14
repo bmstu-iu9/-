@@ -55,7 +55,6 @@ __global__ void calcKernel(unsigned int *v, int *dv, int creature_size, unsigned
 			delta[l] = cur_cond_sign
 				? v[cur_cell * (SUBSTANCE_LENGTH - 1) + cur_cond_substance] - cur_cond_threshold
 				: cur_cond_threshold - v[cur_cell * (SUBSTANCE_LENGTH - 1) + cur_cond_substance];
-			//printf("cur_cond_subst = %d cur_cell = %d dv = %d\n", cur_cond_substance ,cur_cell, delta[l]);
 		}
 		for (l = 0; l < oper_length[k]; l++){
 			for (p = 0; p < cond_length[l]; p++){
@@ -71,7 +70,7 @@ __global__ void calcKernel(unsigned int *v, int *dv, int creature_size, unsigned
 	}
 }
 
-__global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, float *m_val, int m_size, float norm_rate){
+__global__ void blurKernel(unsigned int *v, int *dv, int c_size, float *m_val, int m_size, int norm_rate){
 	int y = blockDim.y*blockIdx.y + threadIdx.y;
 	int x = blockDim.x*blockIdx.x + threadIdx.x;
 	if (x >= c_size || y >= c_size)
@@ -82,24 +81,29 @@ __global__ void blurKernel(unsigned int *cr_v, unsigned int *cp_v, int c_size, f
 	int cur_cell_j = y;
 	float accum[SUBSTANCE_LENGTH] = { 0 };
 	int k, l, p;
-	for (k = 0; k < m_size; k++){
-		for (l = 0; l < m_size; l++){
-			cur_cell_i = x - sz + k;
-			cur_cell_j = y - sz + l;
-			if (cur_cell_i > 0 && cur_cell_i < c_size && cur_cell_j > 0 && cur_cell_j < c_size){
-				for (p = 0; p < SUBSTANCE_LENGTH; p++){
-					accum[p] += (cp_v[((cur_cell_i * c_size + cur_cell_j) * (SUBSTANCE_LENGTH - 1) + p)] * m_val[k * m_size + l]);
-				}
+	for (k = -sz; k <= sz; k++){
+		for (l = -sz; l <= sz; l++){
+			cur_cell_i = x + k;
+			cur_cell_j = y + l;
+			if(cur_cell_j < 0){//l < 0
+				cur_cell_j = -l;
 			}
-			else{
-				for(p = 0; p < SUBSTANCE_LENGTH; p++){
-					accum[p] = cp_v[(x * c_size + y) * (SUBSTANCE_LENGTH - 1) + p];
-				}
+			if(cur_cell_j >= c_size){//l > 0
+				cur_cell_j = c_size - l - 1;
+			}
+			if(cur_cell_i < 0){ //здесь k < 0
+				cur_cell_i = -k;
+			}
+			if(cur_cell_i >= c_size){//k > 0
+				cur_cell_i = c_size - k - 1;
+			}
+			for(p = 0; p < SUBSTANCE_LENGTH - 1; p++){
+				accum[p] += (v[(cur_cell_i * c_size + cur_cell_j) * (SUBSTANCE_LENGTH - 1) + p] * m_val[(sz + k) * m_size + (sz + l)]);
 			}
 		}
 	}
-	for (p = 0; p < SUBSTANCE_LENGTH; p++){
-		cr_v[core_point * (SUBSTANCE_LENGTH - 1) + p] = (accum[p])/norm_rate;
+	for (p = 0; p < SUBSTANCE_LENGTH - 1; p++){
+		dv[core_point * (SUBSTANCE_LENGTH - 1) + p] = (int)(accum[p])/norm_rate;
 	}
 }
 
@@ -107,10 +111,17 @@ cudaError_t calcWithCuda(struct creature *creature, struct genome* genome)
 {
 	cudaError_t cudaStatus;	
 	int i, j;
-
+	
 	cudaStatus = cudaSetDevice(0);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaSetDevice failed!\n");
+	}
+	for(i = 0; i < creature->n; i++){
+		for(j = 0; j < creature->n; j++){
+			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
+				creature->cells[i * creature->n + j].dv[k] = 0;
+			}
+		}
 	}
 	unsigned int *v, *d_v;
 	int *dv, *d_dv;
@@ -200,6 +211,7 @@ cudaError_t calcWithCuda(struct creature *creature, struct genome* genome)
 	if(cudaMemcpy(dv, d_dv, creature->n * creature->n * SUBSTANCE_LENGTH * sizeof(int), cudaMemcpyDeviceToHost) != cudaSuccess)
 		puts("ERROR: Unable to get dv-vector from device\n");
 	copy_after_kernel(creature, v, dv);
+
 	
 	free(v);
 	free(dv);
@@ -223,16 +235,15 @@ cudaError_t blurWithCuda(struct creature * creature, struct matrix * matrix){
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaSetDevice failed!\n");
 	}
-	unsigned int *v, *cr_v, *cp_v;
-	int *dv, *cr_dv, *cp_dv;
+	unsigned int *v, *d_v;
+	int *dv, *d_dv;
 	float *m, *d_m;
 	init_arrays(&v, &dv, creature);
 	m = (float*)calloc(matrix->size * matrix->size, sizeof(float));
 	memcpy(m, matrix->val, matrix->size * matrix->size * sizeof(float));
 	
-	init_dev_creature(v, &cr_v, dv, &cr_dv, creature);
-	init_dev_creature(v, &cp_v, dv, &cp_dv, creature);
-
+	init_dev_creature(v, &d_v, dv, &d_dv, creature);
+	
 	if(cudaMalloc((void**)&d_m, matrix->size * matrix->size * sizeof(float)) != cudaSuccess){
 		puts("ERROR: Unable to allocate convolution matrix\n");
 	}
@@ -243,30 +254,28 @@ cudaError_t blurWithCuda(struct creature * creature, struct matrix * matrix){
 	int threadNum = MAX_THREAD_NUM;
 	dim3 blockSize = dim3(threadNum, 1, 1);
 	dim3 gridSize = dim3(creature->n/threadNum + 1, creature->n, 1);
-	blurKernel << <gridSize, blockSize>> >(cr_v, cp_v, creature->n, d_m, matrix->size, matrix->norm_rate);
+	blurKernel <<<gridSize, blockSize>>>(d_v, d_dv, creature->n, d_m, matrix->size, matrix->norm_rate);
 
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "calcKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
+		fprintf(stderr, "blurKernel launch failed: %s\n", cudaGetErrorString(cudaStatus));
 	}
 
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching calcKernel!\n", cudaStatus);
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching blurKernel!\n", cudaStatus);
 	}
-	if(cudaMemcpy(v, cr_v, creature->n * creature->n * SUBSTANCE_LENGTH * sizeof(unsigned int*), cudaMemcpyDeviceToHost) != cudaSuccess)
+	if(cudaMemcpy(v, d_v, creature->n * creature->n * SUBSTANCE_LENGTH * sizeof(unsigned int*), cudaMemcpyDeviceToHost) != cudaSuccess)
 		puts("ERROR: Unable to get v-vector from device\n");
-	if(cudaMemcpy(dv, cr_dv, creature->n * creature->n * SUBSTANCE_LENGTH *sizeof(int*), cudaMemcpyDeviceToHost) != cudaSuccess)
+	if(cudaMemcpy(dv, d_dv, creature->n * creature->n * SUBSTANCE_LENGTH *sizeof(int*), cudaMemcpyDeviceToHost) != cudaSuccess)
 		puts("ERROR: Unable to get dv-vector from device\n");
 	copy_after_kernel(creature, v, dv);
 	
 	free(v);
 	free(dv);
 	free(m);
-	cudaFree(cr_v);
-	cudaFree(cp_v);
-	cudaFree(cr_dv);
-	cudaFree(cp_dv);
+	cudaFree(d_v);
+	cudaFree(d_dv);
 	cudaFree(d_m);
 	return cudaStatus;
 }

@@ -16,8 +16,12 @@ void init_creature(struct creature ** creature){
 	}
 	(*creature)->cells[0].v[0] = (*creature)->cells[0].dv[0] = 255;
 	(*creature)->cells[1].v[0] = (*creature)->cells[1].dv[0] = 255;
-	(*creature)->cells[1].v[1] = (*creature)->cells[1].dv[1] = 255; 
-	(*creature)->cells[3].v[1] = (*creature)->cells[3].dv[1] = 255;
+	(*creature)->cells[2].v[0] = (*creature)->cells[2].dv[0] = 255;
+	(*creature)->cells[3].v[0] = (*creature)->cells[3].dv[0] = 255;
+	(*creature)->cells[3].v[1] = (*creature)->cells[3].dv[1] = 255; 
+	(*creature)->cells[7].v[1] = (*creature)->cells[7].dv[1] = 255;
+	(*creature)->cells[11].v[1] = (*creature)->cells[11].dv[1] = 255;
+	(*creature)->cells[15].v[1] = (*creature)->cells[15].dv[1] = 255;
 }
 
 struct creature* grow(struct creature * creature){
@@ -31,7 +35,6 @@ struct creature* grow(struct creature * creature){
 				new_creature->cells[i * new_size + j].v[k] = creature->cells[(i/2) * creature->n + j/2].v[k];
 				new_creature->cells[i * new_size + j].dv[k] = creature->cells[(i/2) * creature->n + j/2].dv[k];
 			}
-			
 		}
 	}
 	/*for(int i = 0; i < creature->n; i++){
@@ -43,7 +46,30 @@ struct creature* grow(struct creature * creature){
 	return new_creature;
 }
 
-void apply_changes(struct creature * creature){
+void apply_calc_changes(struct creature * creature){
+	for(int i = 0; i < creature->n; i++){
+		for(int j = 0; j < creature->n; j++){
+			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
+				if(k == 2 || k == 3 || k == 4){
+					if((creature->cells[i * creature->n + j].v[k] + creature->cells[i * creature->n + j].dv[k]) > 255){
+						creature->cells[i * creature->n + j].v[k] = 255;
+						continue;
+					}
+					else if((creature->cells[i * creature->n + j].v[k] + creature->cells[i * creature->n + j].dv[k]) < 0){
+						creature->cells[i * creature->n + j].v[k] = 0;
+						continue;
+					}
+				}
+				creature->cells[i * creature->n + j].v[k] += creature->cells[i * creature->n + j].dv[k];
+				/*if(k == 5){
+					printf("index = %d value5 = %d\n",i * creature->n + j, creature->cells[i * creature->n + j].v[k]);
+				}*/
+			}
+		}
+	}
+}
+
+void apply_blur_changes(struct creature * creature){
 	for(int i = 0; i < creature->n; i++){
 		for(int j = 0; j < creature->n; j++){
 			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
@@ -58,9 +84,6 @@ void apply_changes(struct creature * creature){
 					}
 				}
 				creature->cells[i * creature->n + j].v[k] = creature->cells[i * creature->n + j].dv[k];
-				/*if(k == 5){
-					printf("index = %d value5 = %d\n",i * creature->n + j, creature->cells[i * creature->n + j].v[k]);
-				}*/
 			}
 		}
 	}
