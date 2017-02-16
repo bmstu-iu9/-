@@ -53,60 +53,17 @@ int main(int argc, char **argv)
 	}
 	
 	init_creature(&creature);
-	for(int i = 0; i < creature->n; i++){
+	/*for(int i = 0; i < creature->n; i++){
 		for(int j = 0; j < creature->n; j++){
 			printf("%d %d %d\n", creature->cells[i * creature->n + j].dv[0], creature->cells[i * creature->n + j].dv[1], creature->cells[i * creature->n + j].dv[2]);
 		}
-	}
-	/*creature = (struct creature*)malloc(sizeof(struct creature));
-	creature->n = 4;
-	creature->cells = (struct cell*)calloc(creature->n * creature->n, sizeof(struct cell));
-	for(int i = 0; i < creature->n; i++){
-		for(int j = 0; j < creature->n; j++){
-			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
-				if(i * creature->n + j >= creature->n * creature->n / 2){
-					creature->cells[j * creature->n + i].v[k] = 255;
-				}
-				else 
-					creature->cells[j * creature->n + i].v[k] = 0;
-			}
-		}
-	}
-	for(int i = 0; i < creature->n; i++){
-		for(int j = 0; j < creature->n; j++){
-			printf("%d ", creature->cells[i * creature->n + j].v[0]);
-		}
-		printf("\n");
 	}*/
+
 	init_blur_matrix(&matrix);
 	int step = 0;
 	char path[FILENAME_MAX] = {0};
 	cudaError_t cudaStatus = cudaSuccess;
-	/*cudaStatus = blurWithCuda(creature, matrix);
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "blurWithCuda failed!");
-		}
-	printf("after blur\n");
-	for(int i = 0; i < creature->n; i++){
-		for(int j = 0; j < creature->n; j++){
-			printf("%d ", creature->cells[i * creature->n + j].dv[0]);
-		}
-		printf("\n");
-	}*/
-	/*puts("beore blur\n");
-	for(int i = 0; i < creature->n; i++){
-			for(int j = 0; j < creature->n; j++){
-				printf("%d ", creature->cells[i * creature->n + j].v[0]);
-			}
-			printf("\n");
-		}
-		printf("\n");
-	for(int i = 0; i < creature->n; i++){
-		for(int j = 0; j < creature->n; j++){
-			printf("%d ", creature->cells[i * creature->n + j].v[1]);
-		}
-		printf("\n");
-	}*/
+
 	while(creature->n < MAX_CREATURE_SIZE){
 		cudaStatus = calcWithCuda(creature, genome);
 		if (cudaStatus != cudaSuccess) {
@@ -119,26 +76,6 @@ int main(int argc, char **argv)
 			fprintf(stderr, "blurWithCuda failed!");
 		}
 		apply_blur_changes(creature);
-		/*printf("after blur\n");
-		for(int i = 0; i < creature->n; i++){
-			for(int j = 0; j < creature->n; j++){
-				printf("%d ", creature->cells[i * creature->n + j].v[0]);
-			}
-			printf("\n");
-		}
-		printf("\n");
-		for(int i = 0; i < creature->n; i++){
-			for(int j = 0; j < creature->n; j++){
-				printf("%d ", creature->cells[i * creature->n + j].v[1]);
-			}
-			printf("\n");
-		}*/
-		/*for(int i = 0; i < creature->n; i++){
-			for(int j = 0; j < creature->n; j++){
-				printf("%d ", creature->cells[i * creature->n + j].dv[0]);
-			}
-			printf("\n");
-		}*/
 		step++;
 		if(step % GROW_SIZE == 0){
 			if(creature->n > 2){
