@@ -36,7 +36,7 @@ __device__ unsigned char get_cond_substance(int num_gene, int num_cond, int* con
 	return cond[cond_offset[num_gene] + 2 * num_cond + 1] & 0x7f;
 }
 
-//get i,j cell ,k value in vector -- (i * size + j) * (SUBSTANCE_LENGTH - 1) + k
+//get i,j cell ,k value in vector -- (i * size + j) * (SUBSTANCE_LENGTH) + k
 
 __global__ void calcKernel(unsigned int *v, int *dv, int creature_size, unsigned char* oper, int *oper_length, int* oper_offset, unsigned char* cond, int* cond_length, int* cond_offset, int genome_size)
 {
@@ -53,16 +53,16 @@ __global__ void calcKernel(unsigned int *v, int *dv, int creature_size, unsigned
 			unsigned char cur_cond_threshold = get_cond_threshold(k, l, cond_offset, cond);
 			unsigned char cur_cond_substance = get_cond_substance(k, l, cond_offset, cond);
 			delta[l] = cur_cond_sign
-				? v[cur_cell * (SUBSTANCE_LENGTH - 1) + cur_cond_substance] - cur_cond_threshold
-				: cur_cond_threshold - v[cur_cell * (SUBSTANCE_LENGTH - 1) + cur_cond_substance];
+				? v[cur_cell * (SUBSTANCE_LENGTH) + cur_cond_substance] - cur_cond_threshold
+				: cur_cond_threshold - v[cur_cell * (SUBSTANCE_LENGTH) + cur_cond_substance];
 		}
 		for (l = 0; l < oper_length[k]; l++){
 			for (p = 0; p < cond_length[l]; p++){
 				unsigned char cur_oper_substance = get_oper_substnace(k, l, oper_offset, oper);
 				unsigned char cur_oper_rate = get_oper_rate(k, l, oper_offset, oper);
 				unsigned char cur_oper_sign = get_oper_sign(k, l, oper_offset, oper);
-				cur_oper_sign ? dv[cur_cell * (SUBSTANCE_LENGTH - 1) + cur_oper_substance] -= (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127)) :
-					dv[cur_cell * (SUBSTANCE_LENGTH - 1) + cur_oper_substance] += (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127));
+				cur_oper_sign ? dv[cur_cell * (SUBSTANCE_LENGTH) + cur_oper_substance] -= (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127)) :
+					dv[cur_cell * (SUBSTANCE_LENGTH) + cur_oper_substance] += (int)(cur_oper_rate * calc_sigma((float)(delta[p])/127));
 				
 			}
 		}
@@ -97,13 +97,13 @@ __global__ void blurKernel(unsigned int *v, int *dv, int c_size, float *m_val, i
 			if(cur_cell_i >= c_size){//k > 0
 				cur_cell_i = c_size - k - 1;
 			}
-			for(p = 0; p < SUBSTANCE_LENGTH - 1; p++){
-				accum[p] += (v[(cur_cell_i * c_size + cur_cell_j) * (SUBSTANCE_LENGTH - 1) + p] * m_val[(sz + k) * m_size + (sz + l)]);
+			for(p = 0; p < SUBSTANCE_LENGTH; p++){
+				accum[p] += (v[(cur_cell_i * c_size + cur_cell_j) * (SUBSTANCE_LENGTH) + p] * m_val[(sz + k) * m_size + (sz + l)]);
 			}
 		}
 	}
-	for (p = 0; p < SUBSTANCE_LENGTH - 1; p++){
-		dv[core_point * (SUBSTANCE_LENGTH - 1) + p] = (int)(accum[p])/norm_rate;
+	for (p = 0; p < SUBSTANCE_LENGTH; p++){
+		dv[core_point * (SUBSTANCE_LENGTH) + p] = (int)(accum[p])/norm_rate;
 	}
 }
 

@@ -53,12 +53,6 @@ int main(int argc, char **argv)
 	}
 	
 	init_creature(&creature);
-	/*for(int i = 0; i < creature->n; i++){
-		for(int j = 0; j < creature->n; j++){
-			printf("%d %d %d\n", creature->cells[i * creature->n + j].dv[0], creature->cells[i * creature->n + j].dv[1], creature->cells[i * creature->n + j].dv[2]);
-		}
-	}*/
-
 	init_blur_matrix(&matrix);
 	int step = 0;
 	char path[FILENAME_MAX] = {0};
@@ -70,7 +64,9 @@ int main(int argc, char **argv)
 			fprintf(stderr, "calcWithCuda failed!");
 		}
 		printf("creature size = %d\n", creature->n);
+		
 		apply_calc_changes(creature);
+		
 		cudaStatus = blurWithCuda(creature, matrix);
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "blurWithCuda failed!");
@@ -129,8 +125,8 @@ void copy_after_kernel(struct creature *creature, unsigned int *v, int *dv){
 	for(int i = 0; i < creature->n; i++){
 		for(int j = 0; j < creature->n; j++){
 			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
-				creature->cells[i * creature->n + j].v[k] = v[(i * creature->n + j) * (SUBSTANCE_LENGTH - 1) + k];
-				creature->cells[i * creature->n + j].dv[k] = dv[(i * creature->n + j) * (SUBSTANCE_LENGTH - 1) + k];
+				creature->cells[i * creature->n + j].v[k] = v[(i * creature->n + j) * (SUBSTANCE_LENGTH) + k];
+				creature->cells[i * creature->n + j].dv[k] = dv[(i * creature->n + j) * (SUBSTANCE_LENGTH) + k];
 			}
 		//	printf("%d ", creature->cells[i * creature->n + j].dv[1]);
 		}
@@ -146,10 +142,10 @@ void init_arrays(unsigned int **v, int **dv, struct creature * creature){
 	for(int i = 0; i < creature->n; i++){
 		for(int j = 0; j < creature->n; j++){
 			for(int k = 0; k < SUBSTANCE_LENGTH; k++){
-				(*v)[(i * creature->n + j) * (SUBSTANCE_LENGTH - 1) + k] = creature->cells[i * creature->n + j].v[k];
-				(*dv)[(i * creature->n + j) * (SUBSTANCE_LENGTH - 1) + k] = creature->cells[i * creature->n + j].dv[k];
+				(*v)[(i * creature->n + j) * (SUBSTANCE_LENGTH) + k] = creature->cells[i * creature->n + j].v[k];
+				(*dv)[(i * creature->n + j) * (SUBSTANCE_LENGTH) + k] = creature->cells[i * creature->n + j].dv[k];
 			}
-			//printf("%d ", (*v)[(i * creature->n + j) * (SUBSTANCE_LENGTH - 1)]);
+			//printf("%d ", (*v)[(i * creature->n + j) * (SUBSTANCE_LENGTH)]);
 		}
 	}
 }

@@ -3,6 +3,9 @@
 
 #define SUBSTANCE_LENGTH 128
 #define MAX_CREATURE_SIZE 512
+#define RED_COMPONENT 2
+#define GREEN_COMPONENT 3
+#define BLUE_COMPONENT 4
 
 struct cell{
 	unsigned int v[SUBSTANCE_LENGTH];
